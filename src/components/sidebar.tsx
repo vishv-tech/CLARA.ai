@@ -6,7 +6,7 @@ import { useAuth } from "@/components/auth-provider";
 import { BookIcon, CalendarIcon, CheckIcon, ClipboardIcon, DashboardIcon, TrophyIcon } from "./icons";
 
 const studentLinks = [
-  { href: "/", label: "Dashboard", icon: DashboardIcon },
+  { href: "/dashboard", label: "Dashboard", icon: DashboardIcon },
   { href: "/subjects", label: "My Subjects", icon: BookIcon },
   { href: "/notices", label: "College Notices", icon: ClipboardIcon },
   { href: "/study-workspace", label: "Study Workspace", icon: BookIcon },
@@ -36,13 +36,13 @@ export function Sidebar() {
   }
 
   return <aside className="sidebar">
-    <Link href="/" className="brand" aria-label="CLARA dashboard">
+    <Link href={profile?.role === "teacher" ? "/teacher" : "/dashboard"} className="brand" aria-label="CLARA dashboard">
       <span className="brand-mark">C</span>
       <span><strong>CLARA</strong><small>{profile?.role === "teacher" ? "TEACHER SPACE" : "STUDENT OS"}</small></span>
     </Link>
     <nav className="nav-list" aria-label="Main navigation">
       {links.map(({ href, label, icon: Icon }) => {
-        const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
+        const active = pathname === href || pathname.startsWith(`${href}/`);
         return <Link key={href} href={href} className={`nav-link ${active ? "active" : ""}`}>
           <Icon className="nav-icon" /><span>{label}</span>
         </Link>;

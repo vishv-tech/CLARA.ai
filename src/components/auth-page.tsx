@@ -36,7 +36,7 @@ export function AuthPage({ mode }: { mode: "login" | "signup" }) {
     setSubmitting(false);
     if (result.error) return setError(result.error);
     if (result.requiresEmailConfirmation) return setConfirmationSent(true);
-    router.replace("/");
+    router.replace(role === "teacher" ? "/teacher" : "/dashboard");
   }
 
   if (confirmationSent) {

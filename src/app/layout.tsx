@@ -8,7 +8,7 @@ const manrope = Manrope({ subsets: ["latin"], variable: "--font-manrope" });
 
 export const metadata: Metadata = {
   title: "CLARA — College Learning and Resource Assistant",
-  description: "A focused academic operating system for students.",
+  description: "One connected workspace for college learning, classes, assessments, attendance and official information.",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

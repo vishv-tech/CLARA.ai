@@ -8,6 +8,8 @@ const MODELS = ["gemini-3.8-flash", "gemini-3.7-flash", "gemini-3.6-flash", "gem
 export type GeminiModel = (typeof MODELS)[number];
 const PRIMARY_ATTEMPT_TIMEOUT_MS = 15_000;
 const FALLBACK_ATTEMPT_TIMEOUT_MS = 42_000;
+const OFFICIAL_QUIZ_ATTEMPT_TIMEOUT_MS = 11_000;
+const OFFICIAL_QUIZ_TOTAL_TIMEOUT_MS = 40_000;
 const GOOGLE_SEARCH_TOOL = { type: "google_search" } as const satisfies Interactions.Tool;
 
 const SYSTEM_INSTRUCTION = `You are CLARA, College Learning and Resource Assistant, an academic assistant for college students.
@@ -48,19 +50,53 @@ function isRetriable(error: unknown) {
   return false;
 }
 
+async function withHardTimeout<T>(operation: Promise<T>, timeoutMs: number) {
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      operation,
+      new Promise<never>((_, reject) => {
+        timeout = setTimeout(
+          () => reject(new GeminiUnavailableError("CLARA AI is temporarily busy. Please try again.")),
+          timeoutMs,
+        );
+      }),
+    ]);
+  } finally {
+    if (timeout) clearTimeout(timeout);
+  }
+}
+
 export async function runWithModelFallback<T>(
   operation: "study.chat" | "study.explore" | "quiz.generate" | "quiz.recommend" | "subject.chat" | "subject.quiz.generate" | "notice.chat",
   hasSources: boolean,
   request: (client: GoogleGenAI, model: GeminiModel, timeoutMs: number) => Promise<T>,
 ) {
   const client = getGeminiClient();
+  const officialQuizDeadline = operation === "subject.quiz.generate"
+    ? Date.now() + OFFICIAL_QUIZ_TOTAL_TIMEOUT_MS
+    : undefined;
   for (const [index, model] of MODELS.entries()) {
     try {
-      const timeoutMs = index === 0 ? PRIMARY_ATTEMPT_TIMEOUT_MS : FALLBACK_ATTEMPT_TIMEOUT_MS;
-      const value = await request(client, model, timeoutMs);
+      const remainingBudget = officialQuizDeadline === undefined
+        ? undefined
+        : officialQuizDeadline - Date.now();
+      if (remainingBudget !== undefined && remainingBudget <= 0) {
+        throw new GeminiUnavailableError("CLARA AI is temporarily busy. Please try again.");
+      }
+      const timeoutMs = remainingBudget === undefined
+        ? index === 0 ? PRIMARY_ATTEMPT_TIMEOUT_MS : FALLBACK_ATTEMPT_TIMEOUT_MS
+        : Math.min(OFFICIAL_QUIZ_ATTEMPT_TIMEOUT_MS, remainingBudget);
+      const pendingRequest = request(client, model, timeoutMs);
+      const value = remainingBudget === undefined
+        ? await pendingRequest
+        : await withHardTimeout(pendingRequest, remainingBudget);
       console.info(`[SAGE AI] ${operation} -> ${model}`);
       return { value, modelUsed: model };
     } catch (error) {
+      if (officialQuizDeadline !== undefined && Date.now() >= officialQuizDeadline) {
+        throw new GeminiUnavailableError("CLARA AI is temporarily busy. Please try again.");
+      }
       const status = getErrorStatus(error);
       if (status === 404 && hasSources) {
         throw new GeminiSourceError("One of these sources has expired and needs to be uploaded again.");

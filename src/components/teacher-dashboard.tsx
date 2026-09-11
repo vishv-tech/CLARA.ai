@@ -97,7 +97,7 @@ export function TeacherDashboard() {
 
     {error && <div className="official-alert" role="alert">{error}</div>}
     {showCreate && <form className="official-create-form" onSubmit={createSubject}>
-      <div><p className="eyebrow">NEW OFFICIAL SPACE</p><h2>Create a subject</h2><p>CLARA creates a separate Gemini File Search store for every subject.</p></div>
+      <div><p className="eyebrow">NEW OFFICIAL SPACE</p><h2>Create a subject</h2><p>CLARA prepares a private official knowledge space for every subject.</p></div>
       <label>Subject Name<input name="name" required maxLength={120} placeholder="Artificial Intelligence" /></label>
       <label>Subject Code<input name="code" required maxLength={8} placeholder="AI" onInput={(event) => { event.currentTarget.value = event.currentTarget.value.toUpperCase().replace(/[^A-Z0-9]/g, ""); }} /></label>
       <label className="wide">Description <span>optional</span><textarea name="description" maxLength={500} placeholder="TYBSc IT Artificial Intelligence" /></label>
