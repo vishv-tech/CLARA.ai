@@ -25,6 +25,7 @@ export function normalizeQuizPayload(
   if (!title || !Array.isArray(raw.questions) || raw.questions.length !== questionCount) return undefined;
 
   const questions: QuizQuestion[] = [];
+  const seenQuestions = new Set<string>();
   for (const [index, item] of raw.questions.entries()) {
     if (!item || typeof item !== "object") return undefined;
     const question = item as {
@@ -38,6 +39,9 @@ export function normalizeQuizPayload(
     const topic = cleanString(question.topic, 120);
     const explanation = cleanString(question.explanation, 1_200);
     if (!questionText || !topic || !explanation || !Array.isArray(question.options) || question.options.length !== 4) return undefined;
+    const normalizedQuestion = questionText.toLocaleLowerCase();
+    if (seenQuestions.has(normalizedQuestion)) return undefined;
+    seenQuestions.add(normalizedQuestion);
 
     const options = question.options.map((option) => cleanString(option, 320));
     if (options.some((option) => !option) || new Set(options).size !== 4) return undefined;

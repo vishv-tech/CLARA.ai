@@ -174,6 +174,77 @@ export type SubjectQuestion = {
   answered_at: string | null;
 };
 
+export type SubjectQuizStatus = "draft" | "published";
+
+export type SubjectQuiz = {
+  id: string;
+  subject_id: string;
+  teacher_id: string;
+  title: string;
+  difficulty: QuizDifficulty;
+  question_count: 5 | 10;
+  status: SubjectQuizStatus;
+  due_at: string | null;
+  created_at: string;
+  published_at: string | null;
+};
+
+export type SubjectQuizQuestion = {
+  id: string;
+  quiz_id: string;
+  position: number;
+  question: string;
+  options: [string, string, string, string];
+  topic: string;
+  created_at: string;
+};
+
+export type SubjectQuizAnswerKey = {
+  question_id: string;
+  correct_index: number;
+  explanation: string;
+};
+
+export type SubjectQuizAttempt = {
+  id: string;
+  quiz_id: string;
+  student_id: string;
+  submitted_at: string;
+  answers: Array<number | null>;
+  correct_count: number;
+  incorrect_count: number;
+  unanswered_count: number;
+  percentage: number;
+  duration_seconds: number;
+};
+
+export type OfficialQuizReviewQuestion = {
+  id: string;
+  position: number;
+  question: string;
+  options: [string, string, string, string];
+  topic: string;
+  selectedIndex: number | null;
+  correctIndex: number;
+  explanation: string;
+};
+
+export type OfficialQuizResult = {
+  id: string;
+  quizId: string;
+  title: string;
+  subjectName: string;
+  difficulty: QuizDifficulty;
+  questionCount: number;
+  submittedAt: string;
+  correctCount: number;
+  incorrectCount: number;
+  unansweredCount: number;
+  percentage: number;
+  durationSeconds: number;
+  questions: OfficialQuizReviewQuestion[];
+};
+
 export type SubjectChatMessage = {
   id: string;
   role: "user" | "assistant";

@@ -49,7 +49,7 @@ function isRetriable(error: unknown) {
 }
 
 export async function runWithModelFallback<T>(
-  operation: "study.chat" | "study.explore" | "quiz.generate" | "quiz.recommend" | "subject.chat",
+  operation: "study.chat" | "study.explore" | "quiz.generate" | "quiz.recommend" | "subject.chat" | "subject.quiz.generate",
   hasSources: boolean,
   request: (client: GoogleGenAI, model: GeminiModel, timeoutMs: number) => Promise<T>,
 ) {

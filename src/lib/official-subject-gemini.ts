@@ -1,7 +1,9 @@
 import "server-only";
 
 import type { Interactions } from "@google/genai";
-import { getGeminiClient, runWithModelFallback } from "@/lib/gemini";
+import { GeminiQuizFormatError, getGeminiClient, runWithModelFallback } from "@/lib/gemini";
+import { normalizeQuizPayload } from "@/lib/quiz-utils";
+import type { QuizDifficulty } from "@/lib/types";
 
 const FILE_SEARCH_EMBEDDING_MODEL = "models/gemini-embedding-2";
 const STORE_OPERATION_TIMEOUT_MS = 120_000;
@@ -91,6 +93,93 @@ function officialResponseFormat() {
         answerableFromOfficialSources: { type: "boolean" },
       },
     },
+  };
+}
+
+function officialQuizResponseFormat(difficulty: QuizDifficulty, questionCount: 5 | 10) {
+  return {
+    type: "text" as const,
+    mime_type: "application/json" as const,
+    schema: {
+      type: "object",
+      additionalProperties: false,
+      required: ["title", "difficulty", "questions"],
+      properties: {
+        title: { type: "string" },
+        difficulty: { type: "string", enum: [difficulty] },
+        questions: {
+          type: "array",
+          minItems: questionCount,
+          maxItems: questionCount,
+          items: {
+            type: "object",
+            additionalProperties: false,
+            required: ["question", "options", "correctOptionIndex", "topic", "explanation"],
+            properties: {
+              question: { type: "string" },
+              options: { type: "array", minItems: 4, maxItems: 4, items: { type: "string" } },
+              correctOptionIndex: { type: "integer", minimum: 0, maximum: 3 },
+              topic: { type: "string" },
+              explanation: { type: "string" },
+            },
+          },
+        },
+      },
+    },
+  };
+}
+
+export async function generateOfficialSubjectQuiz(input: {
+  storeName: string;
+  subjectName: string;
+  title: string;
+  difficulty: QuizDifficulty;
+  questionCount: 5 | 10;
+  sourceNames: string[];
+}) {
+  const prompt = `Create the official classroom assessment titled "${input.title}" for ${input.subjectName}.
+Generate exactly ${input.questionCount} ${input.difficulty} multiple-choice questions using only evidence retrieved from the attached teacher-managed File Search store.
+Do not use general knowledge, other subject material, web results, or unstated assumptions.
+Easy means foundational recall and understanding. Medium means concepts and moderate application. Hard means deeper reasoning, scenarios, and conceptual distinctions.
+Each question must be unique and unambiguous, with exactly four distinct plausible options, one correct option index from 0 to 3, a concise topic, and a short evidence-based explanation. Return only the requested JSON.`;
+
+  const { value: interaction, modelUsed } = await runWithModelFallback(
+    "subject.quiz.generate",
+    true,
+    (client, model, timeoutMs) => client.interactions.create({
+      model,
+      input: prompt,
+      system_instruction: "You generate CLARA official assessments. Use only the single attached teacher File Search store. If the store cannot support the requested assessment, do not fill gaps with general knowledge.",
+      tools: [{ type: "file_search", file_search_store_names: [input.storeName] }],
+      response_format: officialQuizResponseFormat(input.difficulty, input.questionCount),
+      store: false,
+    }, { timeout_ms: timeoutMs, retries: { strategy: "none" } }),
+  );
+
+  const output = interaction.output_text?.trim();
+  if (!output) throw new GeminiQuizFormatError("CLARA could not create a complete official quiz.");
+  let payload: unknown;
+  try {
+    payload = JSON.parse(output);
+  } catch {
+    throw new GeminiQuizFormatError("CLARA returned an incomplete official quiz.");
+  }
+  const quiz = normalizeQuizPayload(
+    payload,
+    input.difficulty,
+    input.questionCount,
+    [],
+    input.sourceNames,
+  );
+  const citations = extractFileCitations(interaction.steps);
+  if (!quiz || citations.length === 0) {
+    throw new GeminiQuizFormatError("CLARA could not ground this quiz in the official subject material. Try again after checking the uploaded source.");
+  }
+
+  return {
+    quiz: { ...quiz, title: input.title },
+    modelUsed,
+    citations,
   };
 }
 

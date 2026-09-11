@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/components/auth-provider";
+import { OfficialQuizList } from "@/components/official-quiz-list";
 import { getQuizAttempts, saveQuizAttempt, updateQuizRecommendation, updateQuizSyncStatus } from "@/lib/quiz-storage";
 import { syncQuizAttempt } from "@/lib/quiz-sync";
 import { evaluateQuiz, formatQuizDuration, scoreLabel } from "@/lib/quiz-utils";
@@ -144,6 +145,7 @@ function AnswerReview({ attempt, onBack, onStudy }: { attempt: QuizAttempt; onBa
 export function QuizPage({ configured }: { configured: boolean }) {
   const router = useRouter();
   const { user } = useAuth();
+  const [tab, setTab] = useState<"official" | "practice">("official");
   const [view, setView] = useState<QuizView>("setup");
   const [sources, setSources] = useState<StudySource[]>([]);
   const [history, setHistory] = useState<QuizAttempt[]>([]);
@@ -356,10 +358,16 @@ export function QuizPage({ configured }: { configured: boolean }) {
   return (
     <div className="quiz-page">
       <header className="quiz-page-header">
-        <div><p className="eyebrow">TEST · IDENTIFY · IMPROVE</p><h1>SAGE Quiz Engine</h1><p>Create a focused MCQ quiz, measure understanding, and turn weak areas into your next study plan.</p></div>
-        <Link href="/study-workspace" className="quiz-secondary-button">Back to Study Workspace</Link>
+        <div><p className="eyebrow">TEST · LEARN · IMPROVE</p><h1>SAGE Quiz Engine</h1><p>Take teacher-published assessments or build a personal practice quiz from your own study material.</p></div>
+        {tab === "practice" && <Link href="/study-workspace" className="quiz-secondary-button">Back to Study Workspace</Link>}
       </header>
 
+      <div className="quiz-mode-tabs" role="tablist" aria-label="Quiz type">
+        <button type="button" role="tab" aria-selected={tab === "official"} className={tab === "official" ? "active" : ""} onClick={() => setTab("official")}><span>Official Quizzes</span><small>Teacher published</small></button>
+        <button type="button" role="tab" aria-selected={tab === "practice"} className={tab === "practice" ? "active" : ""} onClick={() => setTab("practice")}><span>Practice Quiz</span><small>Your personal workspace</small></button>
+      </div>
+
+      {tab === "official" ? <OfficialQuizList onPractice={() => setTab("practice")} /> : <>
       {!configured && <div className="quiz-alert warning"><span>!</span><div><strong>SAGE AI is not configured yet</strong><p>Add GEMINI_API_KEY to .env.local and restart the server to generate quizzes.</p></div></div>}
       {error && <div className="quiz-alert error" role="alert"><span>!</span><div><strong>Quiz generation stopped</strong><p>{error}</p></div><button type="button" onClick={() => setError("")} aria-label="Dismiss error">×</button></div>}
 
@@ -413,6 +421,7 @@ export function QuizPage({ configured }: { configured: boolean }) {
           </div>
         </aside>
       </div>
+      </>}
     </div>
   );
 }

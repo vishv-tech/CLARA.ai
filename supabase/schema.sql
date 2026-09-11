@@ -398,3 +398,364 @@ create policy "Students can ask subject questions"
     and teacher_answer is null
     and answered_at is null
   );
+
+-- Updated Sprint 2: teacher-generated Official Quizzes.
+-- Personal Practice Quiz history remains in public.quiz_attempts.
+create table if not exists public.subject_quizzes (
+  id uuid primary key default gen_random_uuid(),
+  subject_id uuid not null references public.subjects(id) on delete cascade,
+  teacher_id uuid not null references public.profiles(id) on delete cascade,
+  title text not null check (char_length(trim(title)) between 2 and 160),
+  difficulty text not null check (difficulty in ('easy', 'medium', 'hard')),
+  question_count integer not null check (question_count in (5, 10)),
+  status text not null default 'draft' check (status in ('draft', 'published')),
+  due_at timestamptz,
+  created_at timestamptz not null default now(),
+  published_at timestamptz,
+  check (
+    (status = 'draft' and published_at is null)
+    or (status = 'published' and published_at is not null)
+  )
+);
+
+create table if not exists public.subject_quiz_questions (
+  id uuid primary key default gen_random_uuid(),
+  quiz_id uuid not null references public.subject_quizzes(id) on delete cascade,
+  position integer not null check (position >= 0),
+  question text not null check (char_length(trim(question)) between 1 and 600),
+  options jsonb not null check (jsonb_typeof(options) = 'array' and jsonb_array_length(options) = 4),
+  topic text not null check (char_length(trim(topic)) between 1 and 120),
+  created_at timestamptz not null default now(),
+  unique (quiz_id, position)
+);
+
+-- Correct answers are deliberately separated from student-visible questions.
+create table if not exists public.subject_quiz_answer_keys (
+  question_id uuid primary key references public.subject_quiz_questions(id) on delete cascade,
+  correct_index integer not null check (correct_index between 0 and 3),
+  explanation text not null check (char_length(trim(explanation)) between 1 and 1200)
+);
+
+create table if not exists public.subject_quiz_attempts (
+  id uuid primary key default gen_random_uuid(),
+  quiz_id uuid not null references public.subject_quizzes(id) on delete cascade,
+  student_id uuid not null references public.profiles(id) on delete cascade,
+  submitted_at timestamptz not null default now(),
+  answers jsonb not null check (jsonb_typeof(answers) = 'array'),
+  correct_count integer not null check (correct_count >= 0),
+  incorrect_count integer not null check (incorrect_count >= 0),
+  unanswered_count integer not null check (unanswered_count >= 0),
+  percentage integer not null check (percentage between 0 and 100),
+  duration_seconds integer not null check (duration_seconds between 0 and 86400),
+  unique (quiz_id, student_id)
+);
+
+create index if not exists subject_quizzes_subject_status_idx
+  on public.subject_quizzes (subject_id, status, created_at desc);
+create index if not exists subject_quizzes_teacher_id_idx
+  on public.subject_quizzes (teacher_id, created_at desc);
+create index if not exists subject_quiz_questions_quiz_position_idx
+  on public.subject_quiz_questions (quiz_id, position);
+create index if not exists subject_quiz_attempts_student_id_idx
+  on public.subject_quiz_attempts (student_id, submitted_at desc);
+
+alter table public.subject_quizzes enable row level security;
+alter table public.subject_quiz_questions enable row level security;
+alter table public.subject_quiz_answer_keys enable row level security;
+alter table public.subject_quiz_attempts enable row level security;
+
+-- Explicit grants are required by Supabase projects that disable automatic Data API exposure.
+revoke all on public.subject_quizzes, public.subject_quiz_questions,
+  public.subject_quiz_answer_keys, public.subject_quiz_attempts from anon, authenticated;
+grant select, insert, update, delete on public.subject_quizzes to authenticated;
+grant select, insert on public.subject_quiz_questions to authenticated;
+grant select, insert on public.subject_quiz_answer_keys to authenticated;
+grant select on public.subject_quiz_attempts to authenticated;
+
+drop policy if exists "Teachers and members can read subject quizzes" on public.subject_quizzes;
+create policy "Teachers and members can read subject quizzes"
+  on public.subject_quizzes for select to authenticated
+  using (
+    teacher_id = (select auth.uid())
+    or (
+      status = 'published'
+      and private.is_subject_member(subject_id)
+    )
+  );
+
+drop policy if exists "Teachers can create own subject quizzes" on public.subject_quizzes;
+create policy "Teachers can create own subject quizzes"
+  on public.subject_quizzes for insert to authenticated
+  with check (
+    teacher_id = (select auth.uid())
+    and private.is_teacher()
+    and private.owns_subject(subject_id)
+    and status = 'draft'
+    and published_at is null
+  );
+
+drop policy if exists "Teachers can publish own subject quizzes" on public.subject_quizzes;
+create policy "Teachers can publish own subject quizzes"
+  on public.subject_quizzes for update to authenticated
+  using (
+    teacher_id = (select auth.uid())
+    and private.is_teacher()
+    and private.owns_subject(subject_id)
+  )
+  with check (
+    teacher_id = (select auth.uid())
+    and private.is_teacher()
+    and private.owns_subject(subject_id)
+  );
+
+drop policy if exists "Teachers can delete own draft quizzes" on public.subject_quizzes;
+create policy "Teachers can delete own draft quizzes"
+  on public.subject_quizzes for delete to authenticated
+  using (
+    teacher_id = (select auth.uid())
+    and private.is_teacher()
+    and private.owns_subject(subject_id)
+    and status = 'draft'
+  );
+
+drop policy if exists "Teachers and members can read quiz questions" on public.subject_quiz_questions;
+create policy "Teachers and members can read quiz questions"
+  on public.subject_quiz_questions for select to authenticated
+  using (
+    exists (
+      select 1
+      from public.subject_quizzes quiz
+      where quiz.id = quiz_id
+        and (
+          quiz.teacher_id = (select auth.uid())
+          or (quiz.status = 'published' and private.is_subject_member(quiz.subject_id))
+        )
+    )
+  );
+
+drop policy if exists "Teachers can create quiz questions" on public.subject_quiz_questions;
+create policy "Teachers can create quiz questions"
+  on public.subject_quiz_questions for insert to authenticated
+  with check (
+    private.is_teacher()
+    and exists (
+      select 1
+      from public.subject_quizzes quiz
+      where quiz.id = quiz_id
+        and quiz.teacher_id = (select auth.uid())
+        and quiz.status = 'draft'
+        and private.owns_subject(quiz.subject_id)
+    )
+  );
+
+-- Only the owning teacher can query answer keys through the Data API.
+drop policy if exists "Teachers can read own quiz answer keys" on public.subject_quiz_answer_keys;
+create policy "Teachers can read own quiz answer keys"
+  on public.subject_quiz_answer_keys for select to authenticated
+  using (
+    private.is_teacher()
+    and exists (
+      select 1
+      from public.subject_quiz_questions question
+      join public.subject_quizzes quiz on quiz.id = question.quiz_id
+      where question.id = question_id
+        and quiz.teacher_id = (select auth.uid())
+        and private.owns_subject(quiz.subject_id)
+    )
+  );
+
+drop policy if exists "Teachers can create own quiz answer keys" on public.subject_quiz_answer_keys;
+create policy "Teachers can create own quiz answer keys"
+  on public.subject_quiz_answer_keys for insert to authenticated
+  with check (
+    private.is_teacher()
+    and exists (
+      select 1
+      from public.subject_quiz_questions question
+      join public.subject_quizzes quiz on quiz.id = question.quiz_id
+      where question.id = question_id
+        and quiz.teacher_id = (select auth.uid())
+        and quiz.status = 'draft'
+        and private.owns_subject(quiz.subject_id)
+    )
+  );
+
+drop policy if exists "Students and teachers can read official attempts" on public.subject_quiz_attempts;
+create policy "Students and teachers can read official attempts"
+  on public.subject_quiz_attempts for select to authenticated
+  using (
+    student_id = (select auth.uid())
+    or exists (
+      select 1
+      from public.subject_quizzes quiz
+      where quiz.id = quiz_id
+        and quiz.teacher_id = (select auth.uid())
+        and private.owns_subject(quiz.subject_id)
+    )
+  );
+
+create or replace function public.get_subject_quiz_result(requested_quiz_id uuid)
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  result jsonb;
+begin
+  if (select auth.uid()) is null then
+    raise exception 'You must be logged in to view a quiz result.' using errcode = '28000';
+  end if;
+
+  select jsonb_build_object(
+    'id', attempt.id,
+    'quizId', quiz.id,
+    'title', quiz.title,
+    'subjectName', subject.name,
+    'difficulty', quiz.difficulty,
+    'questionCount', quiz.question_count,
+    'submittedAt', attempt.submitted_at,
+    'correctCount', attempt.correct_count,
+    'incorrectCount', attempt.incorrect_count,
+    'unansweredCount', attempt.unanswered_count,
+    'percentage', attempt.percentage,
+    'durationSeconds', attempt.duration_seconds,
+    'questions', (
+      select jsonb_agg(
+        jsonb_build_object(
+          'id', question.id,
+          'position', question.position,
+          'question', question.question,
+          'options', question.options,
+          'topic', question.topic,
+          'selectedIndex', attempt.answers -> question.position,
+          'correctIndex', answer_key.correct_index,
+          'explanation', answer_key.explanation
+        ) order by question.position
+      )
+      from public.subject_quiz_questions question
+      join public.subject_quiz_answer_keys answer_key on answer_key.question_id = question.id
+      where question.quiz_id = quiz.id
+    )
+  )
+  into result
+  from public.subject_quiz_attempts attempt
+  join public.subject_quizzes quiz on quiz.id = attempt.quiz_id
+  join public.subjects subject on subject.id = quiz.subject_id
+  where attempt.quiz_id = requested_quiz_id
+    and attempt.student_id = (select auth.uid());
+
+  if result is null then
+    raise exception 'Quiz result not found.' using errcode = 'P0002';
+  end if;
+  return result;
+end;
+$$;
+
+create or replace function public.submit_subject_quiz(
+  requested_quiz_id uuid,
+  submitted_answers jsonb,
+  requested_duration_seconds integer
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  quiz_record record;
+  answer_index integer;
+  answer_value jsonb;
+  actual_question_count integer;
+  calculated_correct integer;
+  calculated_unanswered integer;
+  calculated_incorrect integer;
+  calculated_percentage integer;
+begin
+  if (select auth.uid()) is null then
+    raise exception 'You must be logged in to submit a quiz.' using errcode = '28000';
+  end if;
+  if not private.is_student() then
+    raise exception 'Only student accounts can submit official quizzes.' using errcode = '42501';
+  end if;
+
+  select id, subject_id, question_count, due_at
+  into quiz_record
+  from public.subject_quizzes
+  where id = requested_quiz_id
+    and status = 'published';
+
+  if quiz_record is null or not private.is_subject_member(quiz_record.subject_id) then
+    raise exception 'Published quiz not found.' using errcode = 'P0002';
+  end if;
+  if quiz_record.due_at is not null and quiz_record.due_at <= now() then
+    raise exception 'This quiz deadline has passed.' using errcode = '22023';
+  end if;
+  if exists (
+    select 1 from public.subject_quiz_attempts
+    where quiz_id = requested_quiz_id and student_id = (select auth.uid())
+  ) then
+    raise exception 'You have already submitted this quiz.' using errcode = '23505';
+  end if;
+  if requested_duration_seconds is null or requested_duration_seconds < 0 or requested_duration_seconds > 86400 then
+    raise exception 'Quiz duration is invalid.' using errcode = '22023';
+  end if;
+  if jsonb_typeof(submitted_answers) <> 'array'
+    or jsonb_array_length(submitted_answers) <> quiz_record.question_count then
+    raise exception 'Submit exactly one answer slot per question.' using errcode = '22023';
+  end if;
+
+  for answer_index in 0..quiz_record.question_count - 1 loop
+    answer_value := submitted_answers -> answer_index;
+    if jsonb_typeof(answer_value) = 'null' then
+      continue;
+    end if;
+    if jsonb_typeof(answer_value) <> 'number'
+      or (answer_value #>> '{}') !~ '^[0-3]$' then
+      raise exception 'Each answer must be null or an option index from 0 to 3.' using errcode = '22023';
+    end if;
+  end loop;
+
+  select count(*)
+  into actual_question_count
+  from public.subject_quiz_questions question
+  join public.subject_quiz_answer_keys answer_key on answer_key.question_id = question.id
+  where question.quiz_id = requested_quiz_id;
+  if actual_question_count <> quiz_record.question_count then
+    raise exception 'This quiz is incomplete and cannot be submitted.' using errcode = '55000';
+  end if;
+
+  select
+    count(*) filter (
+      where (submitted_answers ->> question.position)::integer = answer_key.correct_index
+    ),
+    count(*) filter (
+      where jsonb_typeof(submitted_answers -> question.position) = 'null'
+    )
+  into calculated_correct, calculated_unanswered
+  from public.subject_quiz_questions question
+  join public.subject_quiz_answer_keys answer_key on answer_key.question_id = question.id
+  where question.quiz_id = requested_quiz_id;
+
+  calculated_incorrect := quiz_record.question_count - calculated_correct - calculated_unanswered;
+  calculated_percentage := round((calculated_correct * 100.0) / quiz_record.question_count)::integer;
+
+  insert into public.subject_quiz_attempts (
+    quiz_id, student_id, answers, correct_count, incorrect_count,
+    unanswered_count, percentage, duration_seconds
+  ) values (
+    requested_quiz_id, (select auth.uid()), submitted_answers, calculated_correct,
+    calculated_incorrect, calculated_unanswered, calculated_percentage, requested_duration_seconds
+  );
+
+  return public.get_subject_quiz_result(requested_quiz_id);
+exception
+  when unique_violation then
+    raise exception 'You have already submitted this quiz.' using errcode = '23505';
+end;
+$$;
+
+revoke all on function public.get_subject_quiz_result(uuid) from public, anon;
+revoke all on function public.submit_subject_quiz(uuid, jsonb, integer) from public, anon;
+grant execute on function public.get_subject_quiz_result(uuid) to authenticated;
+grant execute on function public.submit_subject_quiz(uuid, jsonb, integer) to authenticated;
