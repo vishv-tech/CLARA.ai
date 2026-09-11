@@ -759,3 +759,215 @@ revoke all on function public.get_subject_quiz_result(uuid) from public, anon;
 revoke all on function public.submit_subject_quiz(uuid, jsonb, integer) from public, anon;
 grant execute on function public.get_subject_quiz_result(uuid) to authenticated;
 grant execute on function public.submit_subject_quiz(uuid, jsonb, integer) to authenticated;
+
+-- Final Feature Sprint 3: college notices and study consistency.
+create table if not exists public.college_notice_settings (
+  id smallint primary key default 1 check (id = 1),
+  file_search_store_name text not null unique,
+  created_by uuid references public.profiles(id) on delete set null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.college_notice_sources (
+  id uuid primary key default gen_random_uuid(),
+  uploaded_by uuid not null references public.profiles(id) on delete cascade,
+  name text not null check (char_length(trim(name)) between 1 and 240),
+  mime_type text not null,
+  gemini_file_search_document_name text,
+  status text not null default 'processing' check (status in ('processing', 'ready', 'failed')),
+  created_at timestamptz not null default now()
+);
+
+create table if not exists public.study_activity_daily (
+  user_id uuid not null references public.profiles(id) on delete cascade,
+  activity_date date not null default current_date,
+  session_count smallint not null default 1 check (session_count between 0 and 2),
+  updated_at timestamptz not null default now(),
+  primary key (user_id, activity_date)
+);
+
+create index if not exists college_notice_sources_status_created_idx
+  on public.college_notice_sources (status, created_at desc);
+create index if not exists study_activity_daily_date_user_idx
+  on public.study_activity_daily (activity_date desc, user_id);
+
+alter table public.college_notice_settings enable row level security;
+alter table public.college_notice_sources enable row level security;
+alter table public.study_activity_daily enable row level security;
+
+revoke all on public.college_notice_settings, public.college_notice_sources,
+  public.study_activity_daily from anon, authenticated;
+grant select, insert, update on public.college_notice_settings to authenticated;
+grant select, insert, update on public.college_notice_sources to authenticated;
+grant select on public.study_activity_daily to authenticated;
+
+drop policy if exists "Authenticated profiles can read notice settings" on public.college_notice_settings;
+create policy "Authenticated profiles can read notice settings"
+  on public.college_notice_settings for select to authenticated
+  using (private.is_teacher() or private.is_student());
+
+drop policy if exists "Teachers can create notice settings" on public.college_notice_settings;
+create policy "Teachers can create notice settings"
+  on public.college_notice_settings for insert to authenticated
+  with check (
+    private.is_teacher()
+    and created_by = (select auth.uid())
+    and id = 1
+  );
+
+drop policy if exists "Teachers can update notice settings" on public.college_notice_settings;
+create policy "Teachers can update notice settings"
+  on public.college_notice_settings for update to authenticated
+  using (private.is_teacher())
+  with check (private.is_teacher() and id = 1);
+
+drop policy if exists "Authenticated profiles can read notice sources" on public.college_notice_sources;
+create policy "Authenticated profiles can read notice sources"
+  on public.college_notice_sources for select to authenticated
+  using (private.is_teacher() or private.is_student());
+
+drop policy if exists "Teachers can register notice sources" on public.college_notice_sources;
+create policy "Teachers can register notice sources"
+  on public.college_notice_sources for insert to authenticated
+  with check (private.is_teacher() and uploaded_by = (select auth.uid()));
+
+drop policy if exists "Teachers can update notice sources" on public.college_notice_sources;
+create policy "Teachers can update notice sources"
+  on public.college_notice_sources for update to authenticated
+  using (private.is_teacher() and uploaded_by = (select auth.uid()))
+  with check (private.is_teacher() and uploaded_by = (select auth.uid()));
+
+-- Activity rows expose only a date and capped session count. Students may read
+-- the global set for the leaderboard, but nobody can write the table directly.
+drop policy if exists "Students can read leaderboard activity" on public.study_activity_daily;
+create policy "Students can read leaderboard activity"
+  on public.study_activity_daily for select to authenticated
+  using (private.is_student());
+
+create or replace function public.record_study_activity()
+returns integer
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  credited_count integer;
+begin
+  if (select auth.uid()) is null then
+    raise exception 'You must be logged in to record study activity.' using errcode = '28000';
+  end if;
+  if not private.is_student() then
+    raise exception 'Only student accounts can record study activity.' using errcode = '42501';
+  end if;
+
+  insert into public.study_activity_daily (user_id, activity_date, session_count, updated_at)
+  values ((select auth.uid()), current_date, 1, now())
+  on conflict (user_id, activity_date) do update
+  set session_count = least(public.study_activity_daily.session_count + 1, 2),
+      updated_at = now()
+  returning session_count into credited_count;
+
+  return credited_count;
+end;
+$$;
+
+create or replace function public.get_study_leaderboard()
+returns table (
+  user_id uuid,
+  username text,
+  full_name text,
+  active_days integer,
+  current_streak integer,
+  total_sessions_last_7 integer,
+  learning_score integer
+)
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+begin
+  if (select auth.uid()) is null then
+    raise exception 'You must be logged in to view the leaderboard.' using errcode = '28000';
+  end if;
+  if not private.is_student() then
+    raise exception 'Only student accounts can view the leaderboard.' using errcode = '42501';
+  end if;
+
+  return query
+  with student_stats as (
+    select
+      profile.id as user_id,
+      profile.username,
+      profile.full_name,
+      count(activity.activity_date) filter (
+        where activity.activity_date between current_date - 6 and current_date
+          and activity.session_count > 0
+      )::integer as active_days,
+      coalesce(sum(activity.session_count) filter (
+        where activity.activity_date between current_date - 6 and current_date
+      ), 0)::integer as total_sessions_last_7,
+      case
+        when exists (
+          select 1 from public.study_activity_daily today
+          where today.user_id = profile.id
+            and today.activity_date = current_date
+            and today.session_count > 0
+        ) then current_date
+        when exists (
+          select 1 from public.study_activity_daily yesterday
+          where yesterday.user_id = profile.id
+            and yesterday.activity_date = current_date - 1
+            and yesterday.session_count > 0
+        ) then current_date - 1
+        else null
+      end as streak_anchor
+    from public.profiles profile
+    left join public.study_activity_daily activity on activity.user_id = profile.id
+    where profile.role = 'student'
+    group by profile.id, profile.username, profile.full_name
+  ), streak_stats as (
+    select
+      stats.*,
+      coalesce((
+        select count(*)::integer
+        from (
+          select
+            activity.activity_date,
+            row_number() over (order by activity.activity_date desc)::integer - 1 as expected_offset
+          from public.study_activity_daily activity
+          where activity.user_id = stats.user_id
+            and activity.session_count > 0
+            and activity.activity_date <= stats.streak_anchor
+        ) ordered_activity
+        where stats.streak_anchor - ordered_activity.activity_date = ordered_activity.expected_offset
+      ), 0)::integer as current_streak
+    from student_stats stats
+  ), scored as (
+    select
+      stats.user_id,
+      stats.username,
+      stats.full_name,
+      stats.active_days,
+      stats.current_streak,
+      stats.total_sessions_last_7,
+      least(100, round(
+        (stats.active_days / 7.0) * 50
+        + (least(stats.current_streak, 7) / 7.0) * 30
+        + (least(stats.total_sessions_last_7, 14) / 14.0) * 20
+      )::integer) as learning_score
+    from streak_stats stats
+  )
+  select scored.user_id, scored.username, scored.full_name, scored.active_days,
+    scored.current_streak, scored.total_sessions_last_7, scored.learning_score
+  from scored
+  order by scored.learning_score desc, scored.current_streak desc,
+    scored.active_days desc, scored.username asc, scored.full_name asc;
+end;
+$$;
+
+revoke all on function public.record_study_activity() from public, anon;
+revoke all on function public.get_study_leaderboard() from public, anon;
+grant execute on function public.record_study_activity() to authenticated;
+grant execute on function public.get_study_leaderboard() to authenticated;

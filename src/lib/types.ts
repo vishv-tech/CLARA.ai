@@ -253,3 +253,32 @@ export type SubjectChatMessage = {
   answerableFromOfficialSources?: boolean;
   sources?: string[];
 };
+
+export type CollegeNoticeSource = {
+  id: string;
+  uploaded_by: string;
+  name: string;
+  mime_type: string;
+  gemini_file_search_document_name: string | null;
+  status: "processing" | "ready" | "failed";
+  created_at: string;
+};
+
+export type NoticeChatMessage = {
+  id: string;
+  role: "user" | "assistant";
+  text: string;
+  createdAt: string;
+  answerableFromOfficialSources?: boolean;
+  sources?: string[];
+};
+
+export type StudyLeaderboardEntry = {
+  user_id: string;
+  username: string;
+  full_name: string;
+  active_days: number;
+  current_streak: number;
+  total_sessions_last_7: number;
+  learning_score: number;
+};

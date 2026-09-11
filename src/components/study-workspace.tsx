@@ -20,6 +20,7 @@ import {
   MAX_UPLOAD_BYTES,
 } from "@/lib/study-utils";
 import type { StudyMessage, StudyMode, StudySource } from "@/lib/types";
+import { supabase } from "@/lib/supabase";
 
 const REQUEST_TIMEOUT_MS = 175_000;
 
@@ -290,6 +291,11 @@ export function StudyWorkspace({ configured }: { configured: boolean }) {
         citations: result.citations,
       };
       commitMessages([...nextMessages, assistantMessage]);
+      if (supabase) {
+        void supabase.rpc("record_study_activity").then(({ error: activityError }) => {
+          if (activityError) console.warn("[CLARA activity] Successful study response was not credited.");
+        });
+      }
     } catch (requestError) {
       const message = requestError instanceof DOMException && requestError.name === "AbortError"
         ? "SAGE took too long to respond. Please try again in a moment."

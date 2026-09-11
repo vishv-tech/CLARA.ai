@@ -1,5 +1,5 @@
-import { PlaceholderPage } from "@/components/placeholder-page";
+import { LeaderboardPage } from "@/components/leaderboard-page";
 
 export default function Page() {
-  return <PlaceholderPage kind="leaderboard" />;
+  return <LeaderboardPage />;
 }

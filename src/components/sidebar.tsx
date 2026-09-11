@@ -8,6 +8,7 @@ import { BookIcon, CalendarIcon, CheckIcon, ClipboardIcon, DashboardIcon, Trophy
 const studentLinks = [
   { href: "/", label: "Dashboard", icon: DashboardIcon },
   { href: "/subjects", label: "My Subjects", icon: BookIcon },
+  { href: "/notices", label: "College Notices", icon: ClipboardIcon },
   { href: "/study-workspace", label: "Study Workspace", icon: BookIcon },
   { href: "/quiz", label: "Quiz", icon: ClipboardIcon },
   { href: "/timetable", label: "Timetable", icon: CalendarIcon },
@@ -18,6 +19,7 @@ const studentLinks = [
 
 const teacherLinks = [
   { href: "/teacher", label: "Teacher Dashboard", icon: DashboardIcon },
+  { href: "/teacher/notices", label: "College Notices", icon: ClipboardIcon },
 ];
 
 export function Sidebar() {
