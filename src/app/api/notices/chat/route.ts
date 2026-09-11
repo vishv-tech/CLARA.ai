@@ -61,6 +61,6 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error("[CLARA AI] notice.chat -> failed");
     const response = geminiErrorResponse(error);
-    return Response.json({ error: response.message, code: response.code }, { status: response.status });
+    return Response.json({ error: "CLARA couldn't search the official notices right now.", code: response.code }, { status: response.status });
   }
 }

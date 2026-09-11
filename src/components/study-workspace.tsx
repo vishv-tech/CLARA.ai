@@ -161,7 +161,7 @@ export function StudyWorkspace({ configured }: { configured: boolean }) {
     }
     const mimeType = getSupportedMimeType(file.name, file.type);
     if (!mimeType) {
-      setError("SAGE supports PDF, DOCX, TXT, Markdown, PNG, JPEG, and WEBP files.");
+      setError("CLARA supports PDF, DOCX, TXT, Markdown, PNG, JPEG, and WEBP files.");
       return;
     }
     if (file.size > MAX_UPLOAD_BYTES) {
@@ -169,7 +169,7 @@ export function StudyWorkspace({ configured }: { configured: boolean }) {
       return;
     }
     if (!configured) {
-      setError("SAGE AI is not configured yet. Add GEMINI_API_KEY to .env.local before uploading sources.");
+      setError("CLARA AI is not configured yet. Add GEMINI_API_KEY to .env.local before uploading sources.");
       return;
     }
 
@@ -180,12 +180,12 @@ export function StudyWorkspace({ configured }: { configured: boolean }) {
       formData.append("file", file);
       const response = await fetch("/api/study/upload", { method: "POST", body: formData });
       const payload: unknown = await response.json().catch(() => undefined);
-      if (!response.ok) throw new Error(readError(payload, "SAGE could not upload that source. Please try again."));
-      if (!payload || typeof payload !== "object" || !("source" in payload)) throw new Error("SAGE received an invalid upload response.");
+      if (!response.ok) throw new Error(readError(payload, "CLARA could not upload that source. Please try again."));
+      if (!payload || typeof payload !== "object" || !("source" in payload)) throw new Error("CLARA received an invalid upload response.");
       const source = payload.source as StudySource;
       commitSources([...sources, source]);
     } catch (uploadError) {
-      setError(uploadError instanceof Error ? uploadError.message : "SAGE could not upload that source. Please try again.");
+      setError(uploadError instanceof Error ? uploadError.message : "CLARA could not upload that source. Please try again.");
     } finally {
       window.clearTimeout(processingTimer);
       setUploadState(undefined);
@@ -233,7 +233,7 @@ export function StudyWorkspace({ configured }: { configured: boolean }) {
     const trimmed = prompt.trim();
     if (!trimmed || busy) return;
     if (!configured) {
-      setError("SAGE AI is not configured yet. Add GEMINI_API_KEY to .env.local to start chatting.");
+      setError("CLARA AI is not configured yet. Add GEMINI_API_KEY to .env.local to start chatting.");
       return;
     }
 
@@ -269,10 +269,10 @@ export function StudyWorkspace({ configured }: { configured: boolean }) {
         if (payload && typeof payload === "object" && "code" in payload && payload.code === "SOURCE_EXPIRED") {
           markFileSourcesExpired();
         }
-        throw new Error(readError(payload, "SAGE could not complete that request. Please try again."));
+        throw new Error(readError(payload, "CLARA could not complete that request. Please try again."));
       }
       if (!payload || typeof payload !== "object" || !("text" in payload) || typeof payload.text !== "string") {
-        throw new Error("SAGE received an invalid response. Please try again.");
+        throw new Error("CLARA received an invalid response. Please try again.");
       }
       const result = payload as {
         text: string;
@@ -298,10 +298,10 @@ export function StudyWorkspace({ configured }: { configured: boolean }) {
       }
     } catch (requestError) {
       const message = requestError instanceof DOMException && requestError.name === "AbortError"
-        ? "SAGE took too long to respond. Please try again in a moment."
+        ? "CLARA took too long to respond. Please try again in a moment."
         : requestError instanceof Error
           ? requestError.message
-          : "A network problem stopped SAGE from responding. Please try again.";
+          : "A network problem stopped CLARA from responding. Please try again.";
       setError(message);
     } finally {
       window.clearTimeout(timeout);
@@ -320,7 +320,7 @@ export function StudyWorkspace({ configured }: { configured: boolean }) {
       <header className="study-header">
         <div>
           <p className="eyebrow">LEARN WITH YOUR OWN SOURCES</p>
-          <h1>SAGE Study Workspace</h1>
+          <h1>CLARA Study Workspace</h1>
           <p>Turn your course material into a focused, context-aware study conversation.</p>
         </div>
         <div className="study-mode-switch" aria-label="Study mode">
@@ -336,7 +336,7 @@ export function StudyWorkspace({ configured }: { configured: boolean }) {
       {!configured && (
         <div className="study-config-banner" role="status">
           <span>!</span>
-          <div><strong>SAGE AI is not configured yet</strong><p>Add <code>GEMINI_API_KEY</code> to <code>.env.local</code>, then restart the development server.</p></div>
+          <div><strong>CLARA AI is not configured yet</strong><p>Add <code>GEMINI_API_KEY</code> to <code>.env.local</code>, then restart the development server.</p></div>
         </div>
       )}
 
@@ -394,7 +394,7 @@ export function StudyWorkspace({ configured }: { configured: boolean }) {
               </article>
             )}
             {hydrated && sources.length === 0 && !uploadState && (
-              <div className="study-empty-sources"><span>+</span><strong>Bring your material into SAGE</strong><p>PDFs, notes, answer images, or a public YouTube lecture.</p></div>
+              <div className="study-empty-sources"><span>+</span><strong>Bring your material into CLARA</strong><p>PDFs, notes, answer images, or a public YouTube lecture.</p></div>
             )}
             {sources.map((source) => (
               <article className={`study-source-card ${source.status}`} key={source.id}>
@@ -414,7 +414,7 @@ export function StudyWorkspace({ configured }: { configured: boolean }) {
         <section className="study-chat-panel">
           <div className="study-chat-topbar">
             <div className="study-sage-avatar">S</div>
-            <div><h2>Ask SAGE</h2><p>{mode === "course" ? "Grounded in your active study sources" : "Exploring current information with web search"}</p></div>
+            <div><h2>Ask CLARA</h2><p>{mode === "course" ? "Grounded in your active study sources" : "Exploring current information with web search"}</p></div>
             <button type="button" onClick={handleClearChat} disabled={messages.length === 0 || busy}>Clear Chat</button>
           </div>
 
@@ -424,14 +424,14 @@ export function StudyWorkspace({ configured }: { configured: boolean }) {
                 <div className="study-welcome-mark">S</div>
                 <p className="eyebrow">YOUR ACADEMIC THINKING PARTNER</p>
                 <h2>What are we learning today?</h2>
-                <p>{mode === "course" ? "Add course material, then ask SAGE to explain, connect, or summarize it." : "Ask a current academic question and SAGE can search the web when useful."}</p>
+                <p>{mode === "course" ? "Add course material, then ask CLARA to explain, connect, or summarize it." : "Ask a current academic question and CLARA can search the web when useful."}</p>
                 {mode === "course" && readySources.length === 0 && <span className="study-source-hint">No active course source yet — general academic questions still work.</span>}
               </div>
             )}
 
             {messages.map((message) => (
               <article className={`study-message ${message.role}`} key={message.id}>
-                <div className="study-message-label"><span>{message.role === "assistant" ? "S" : "You"}</span><strong>{message.role === "assistant" ? "SAGE" : "You"}</strong><small>{message.mode === "course" ? "Course" : "Explore"}</small></div>
+                <div className="study-message-label"><span>{message.role === "assistant" ? "C" : "You"}</span><strong>{message.role === "assistant" ? "CLARA" : "You"}</strong><small>{message.mode === "course" ? "Course" : "Explore"}</small></div>
                 <div className="study-message-body">
                   {message.role === "assistant" ? <MarkdownAnswer text={message.text} /> : <p>{message.text}</p>}
                   {message.contextSources && message.contextSources.length > 0 && (
@@ -446,8 +446,8 @@ export function StudyWorkspace({ configured }: { configured: boolean }) {
 
             {busy && (
               <article className="study-message assistant thinking">
-                <div className="study-message-label"><span>S</span><strong>SAGE</strong></div>
-                <div className="study-message-body"><p><i /><i /><i /> SAGE is thinking...</p></div>
+                <div className="study-message-label"><span>C</span><strong>CLARA</strong></div>
+                <div className="study-message-body"><p><i /><i /><i /> CLARA is thinking...</p></div>
               </article>
             )}
             <div ref={messagesEndRef} />

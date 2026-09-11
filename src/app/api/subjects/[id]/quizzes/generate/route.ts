@@ -76,7 +76,7 @@ export async function POST(
     });
   } catch (error) {
     const response = geminiErrorResponse(error);
-    return Response.json({ error: response.message, code: response.code }, { status: response.status });
+    return Response.json({ error: "CLARA couldn't generate the quiz right now. Please try again.", code: response.code }, { status: response.status });
   }
 
   const quizId = crypto.randomUUID();

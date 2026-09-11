@@ -89,7 +89,7 @@ export function SubjectsPage() {
     {message && <div className="official-alert success" role="status">{message}</div>}
     <section className="official-section">
       <div className="official-section-heading"><div><p>MY SUBJECTS</p><h2>Teacher verified spaces</h2></div><span>{subjects.length}</span></div>
-      {loading ? <div className="official-empty">Loading your subjects…</div> : subjects.length === 0 ? <div className="official-empty"><strong>You have not joined a subject yet</strong><p>Use a teacher’s join code to unlock an isolated Official Subject Agent.</p></div> : <div className="official-card-grid">
+      {loading ? <div className="official-empty">Loading your subjects…</div> : subjects.length === 0 ? <div className="official-empty"><strong>You haven&apos;t joined any subjects yet.</strong><p>Use a teacher’s join code above to open an Official Subject Agent.</p></div> : <div className="official-card-grid">
         {subjects.map((subject) => <article className="official-subject-card student" key={subject.id}>
           <div className="official-card-badge">{subject.code}</div>
           <span className="official-status">✓ Teacher Verified</span>

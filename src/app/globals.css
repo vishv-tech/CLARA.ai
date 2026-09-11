@@ -139,6 +139,25 @@ a { color: inherit; text-decoration: none; }
 .safe-text { color: var(--green); }
 .warning-text { color: var(--red); }
 .quick-section, .content-section { margin-top: 28px; }
+.dashboard-integration-section { margin-top: 28px; }
+.dashboard-integration-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 13px; margin-top: 14px; }
+.dashboard-integration-card { display: flex; min-height: 190px; flex-direction: column; padding: 18px; border: 1px solid var(--line); border-top: 3px solid var(--violet); border-radius: 15px; background: rgba(255,255,255,.9); box-shadow: 0 9px 30px rgba(26,33,54,.045); }
+.dashboard-integration-card.notice-summary-card { border-top-color: #1a9a76; }
+.dashboard-integration-card.consistency-summary-card { border-top-color: #d49a2f; }
+.dashboard-integration-card > p { margin: 0 0 13px; color: var(--violet); font-size: 8px; font-weight: 900; letter-spacing: .14em; }
+.dashboard-integration-card > span { color: #858d9e; font-size: 9px; line-height: 1.45; }
+.dashboard-integration-card > h3 { margin: 5px 0 6px; color: #343c51; font-size: 13px; line-height: 1.4; }
+.dashboard-integration-card > small { color: #858d9e; font-size: 8px; text-transform: capitalize; }
+.dashboard-integration-card > strong { margin-top: 9px; color: #24805f; font-size: 9px; }
+.dashboard-integration-card > a { display: flex; align-items: center; gap: 5px; margin-top: auto; padding-top: 15px; color: var(--violet); font-size: 9px; font-weight: 900; }
+.dashboard-integration-card > a svg { width: 13px; }
+.integration-loading { color: #969dac; font-size: 9px; }
+.consistency-summary-values { display: grid; grid-template-columns: repeat(3,1fr); gap: 7px; }
+.consistency-summary-values > div { min-width: 0; padding: 10px 7px; border-radius: 10px; background: #f6f5fc; text-align: center; }
+.consistency-summary-values span, .consistency-summary-values strong { display: block; }
+.consistency-summary-values span { color: #8e95a5; font-size: 6px; font-weight: 800; text-transform: uppercase; }
+.consistency-summary-values strong { margin-top: 6px; color: #5542bf; font-size: 17px; }
+.consistency-summary-values small { font-size: 6px; }
 .quick-grid { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 13px; margin-top: 14px; }
 .quick-card { display: flex; min-width: 0; align-items: center; gap: 11px; padding: 14px; border: 1px solid var(--line); border-radius: 14px; background: rgba(255,255,255,.78); transition: .18s ease; }
 .quick-card:hover { border-color: #d6d0fb; background: white; box-shadow: 0 10px 25px rgba(44,41,82,.07); transform: translateY(-2px); }
@@ -272,13 +291,16 @@ a { color: inherit; text-decoration: none; }
   .quick-grid { grid-template-columns: repeat(2,1fr); }
   .subject-grid { grid-template-columns: repeat(2,1fr); }
   .assignment-form { grid-template-columns: repeat(3,1fr); }
+  .dashboard-integration-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .consistency-summary-card { grid-column: 1 / -1; }
 }
 
 @media (max-width: 760px) {
   .sidebar { inset: auto 0 0; width: auto; height: 68px; padding: 7px 8px; flex-direction: row; border: 0; border-top: 1px solid rgba(255,255,255,.08); }
   .brand, .profile-card { display: none; }
-  .nav-list { display: grid; grid-template-columns: repeat(6,1fr); }
-  .nav-link { min-height: 53px; flex-direction: column; gap: 2px; border-radius: 9px; font-size: 7px; }
+  .nav-list { display: flex; min-width: 0; flex-direction: row; overflow-x: auto; scrollbar-width: none; }
+  .nav-list::-webkit-scrollbar { display: none; }
+  .nav-link { min-width: 70px; min-height: 53px; flex-direction: column; gap: 2px; border-radius: 9px; font-size: 7px; }
   .nav-link span { display: block; }
   .nav-icon { width: 17px; height: 17px; }
   .nav-link.active { box-shadow: inset 0 2px #7f6df2; }
@@ -975,6 +997,10 @@ a { color: inherit; text-decoration: none; }
 
 /* Final Feature Sprint 3: college notices and study consistency */
 .notice-hero { margin-bottom: 13px; }
+.teacher-dashboard-hero > div:last-child { display: flex; align-items: center; gap: 8px; }
+.official-secondary { display: inline-flex; min-height: 39px; align-items: center; justify-content: center; padding: 0 13px; border: 1px solid #d9d5f3; border-radius: 10px; color: #6552ca; background: #f5f3ff; font-size: 8px; font-weight: 900; }
+.teacher-card-stats { gap: 5px; }
+.teacher-card-stats span { min-width: 0; }
 .notice-metrics { margin-bottom: 16px; }
 .notice-metrics strong { font-size: 13px; }
 .notice-agent-header { position: relative; }
@@ -1026,6 +1052,9 @@ a { color: inherit; text-decoration: none; }
 }
 
 @media (max-width: 600px) {
+  .dashboard-integration-grid { grid-template-columns: 1fr; }
+  .consistency-summary-card { grid-column: auto; }
+  .teacher-dashboard-hero > div:last-child { align-items: stretch; flex-direction: column; }
   .leaderboard-hero { align-items: flex-start; flex-direction: column; }
   .leaderboard-podium { grid-template-columns: 1fr; }
   .notice-agent-header { align-items: flex-start; flex-wrap: wrap; }

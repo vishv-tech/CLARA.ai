@@ -35,7 +35,7 @@ export function NudgeCard() {
   return (
     <div className="nudge-card" role="status">
       <div className="sage-pulse">✦</div>
-      <div><span>SAGE NUDGE</span><p>{message}</p></div>
+      <div><span>CLARA NUDGE</span><p>{message}</p></div>
       <button type="button" onClick={() => setMessage(undefined)} aria-label="Close reminder">×</button>
     </div>
   );

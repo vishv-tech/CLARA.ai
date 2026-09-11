@@ -82,7 +82,7 @@ export function TeacherNoticesPage() {
     <section className="official-section">
       <div className="official-section-heading"><div><p>TEACHER MANAGED</p><h2>Official notice sources</h2></div><span>{sources.length}</span></div>
       {uploading && <article className="official-source-row processing"><div className="official-file-icon">…</div><div><strong>{uploading}</strong><span>{stage} in the college notice store…</span></div><b>{stage}</b></article>}
-      {loading ? <div className="official-empty">Loading official notices…</div> : sources.length === 0 && !uploading ? <div className="official-empty"><strong>No notices uploaded yet</strong><p>Upload a PDF, DOCX, TXT, or Markdown notice under 25 MB.</p></div> : <div className="official-source-list">
+      {loading ? <div className="official-empty">Loading official notices…</div> : sources.length === 0 && !uploading ? <div className="official-empty"><strong>No official notices have been uploaded yet.</strong><p>Upload a PDF, DOCX, TXT, or Markdown notice under 25 MB.</p></div> : <div className="official-source-list">
         {sources.map((source) => <article className="official-source-row" key={source.id}><div className="official-file-icon">{source.mime_type === "application/pdf" ? "PDF" : source.mime_type.includes("wordprocessing") ? "DOC" : source.mime_type === "text/markdown" ? "MD" : "TXT"}</div><div><strong>{source.name}</strong><span>Added {new Date(source.created_at).toLocaleDateString()}</span></div><b className={source.status}>{source.status}</b></article>)}
       </div>}
     </section>

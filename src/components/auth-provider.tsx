@@ -29,14 +29,14 @@ function friendlyAuthError(message: string) {
     return "That username may already be taken. Try another one.";
   }
   if (normalized.includes("password")) return "Use a password with at least 6 characters.";
-  return message || "SAGE could not complete that request. Please try again.";
+  return message || "CLARA could not complete that request. Please try again.";
 }
 
 async function fetchProfile(user: User): Promise<StudentProfile> {
   const fallback: StudentProfile = {
     id: user.id,
     username: String(user.user_metadata.username ?? user.email?.split("@")[0] ?? "student"),
-    full_name: String(user.user_metadata.full_name ?? "SAGE Student"),
+    full_name: String(user.user_metadata.full_name ?? "CLARA Student"),
     avatar_url: null,
     role: "student",
     created_at: user.created_at,
@@ -93,7 +93,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     user,
     profile,
     signIn: async (email, password) => {
-      if (!supabase) return { error: "SAGE authentication is not configured yet." };
+      if (!supabase) return { error: "CLARA authentication is not configured yet." };
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) return { error: friendlyAuthError(error.message) };
       setSession(data.session);
@@ -102,7 +102,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return {};
     },
     signUp: async ({ fullName, username, email, password, role }) => {
-      if (!supabase) return { error: "SAGE authentication is not configured yet." };
+      if (!supabase) return { error: "CLARA authentication is not configured yet." };
       const { data, error } = await supabase.auth.signUp({
         email,
         password,

@@ -70,6 +70,6 @@ export async function POST(request: Request, context: RouteContext<"/api/subject
     return Response.json(result);
   } catch (error) {
     const response = geminiErrorResponse(error);
-    return Response.json({ error: response.message, code: response.code }, { status: response.status });
+    return Response.json({ error: "CLARA couldn't reach the AI service right now.", code: response.code }, { status: response.status });
   }
 }

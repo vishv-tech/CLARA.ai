@@ -20,7 +20,7 @@ export async function POST(request: Request) {
     };
 
     if (typeof body.message !== "string" || !body.message.trim() || body.message.length > 4_000) {
-      return Response.json({ error: "Ask SAGE a question between 1 and 4,000 characters." }, { status: 400 });
+      return Response.json({ error: "Ask CLARA a question between 1 and 4,000 characters." }, { status: 400 });
     }
     if (body.mode !== "course" && body.mode !== "explore") {
       return Response.json({ error: "Choose Course Mode or Explore Mode." }, { status: 400 });

@@ -14,7 +14,7 @@ function createMessageId() {
 function readError(payload: unknown) {
   return payload && typeof payload === "object" && "error" in payload && typeof payload.error === "string"
     ? payload.error
-    : "CLARA could not answer that notice question.";
+    : "CLARA couldn't search the official notices right now.";
 }
 
 export function CollegeNoticePage() {
@@ -93,7 +93,7 @@ export function CollegeNoticePage() {
         answerableFromOfficialSources: result.answerableFromOfficialSources === true, sources: result.sources ?? [],
       }]);
     } catch (chatError) {
-      setError(chatError instanceof Error ? chatError.message : "CLARA could not answer that notice question.");
+      setError(chatError instanceof Error ? chatError.message : "CLARA couldn't search the official notices right now.");
     } finally {
       setBusy(false);
     }

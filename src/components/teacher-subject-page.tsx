@@ -142,7 +142,7 @@ export function TeacherSubjectPage() {
         }),
       });
       const payload: unknown = await response.json().catch(() => undefined);
-      if (!response.ok) throw new Error(apiError(payload, "CLARA could not generate this official quiz."));
+      if (!response.ok) throw new Error(apiError(payload, "CLARA couldn't generate the quiz right now. Please try again."));
       if (!payload || typeof payload !== "object" || !("quiz" in payload) || !("questions" in payload)) {
         throw new Error("CLARA returned an incomplete quiz preview.");
       }
@@ -151,7 +151,7 @@ export function TeacherSubjectPage() {
       setShowGenerate(false);
       await loadSubject();
     } catch (generationError) {
-      setError(generationError instanceof Error ? generationError.message : "CLARA could not generate this official quiz.");
+      setError(generationError instanceof Error ? generationError.message : "CLARA couldn't generate the quiz right now. Please try again.");
     } finally {
       setGenerating(false);
     }

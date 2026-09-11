@@ -98,7 +98,7 @@ function ResultOverview({
 
       <div className="quiz-recommendation">
         <span>S</span>
-        <div><p>SAGE RECOMMENDS</p><h3>{recommendationLoading ? "Personalizing your revision plan..." : attempt.recommendation}</h3></div>
+        <div><p>CLARA RECOMMENDS</p><h3>{recommendationLoading ? "Personalizing your revision plan..." : attempt.recommendation}</h3></div>
       </div>
 
       <div className="quiz-result-actions">
@@ -198,9 +198,9 @@ export function QuizPage({ configured }: { configured: boolean }) {
         signal: controller.signal,
       });
       const payload: unknown = await response.json().catch(() => undefined);
-      if (!response.ok) throw new Error(readError(payload, "SAGE couldn't generate this quiz. Please try again."));
+      if (!response.ok) throw new Error(readError(payload, "CLARA couldn't generate the quiz right now. Please try again."));
       const generated = payload && typeof payload === "object" && "quiz" in payload ? payload.quiz : undefined;
-      if (!isGeneratedQuiz(generated)) throw new Error("SAGE returned an incomplete quiz. Please try again.");
+      if (!isGeneratedQuiz(generated)) throw new Error("CLARA returned an incomplete quiz. Please try again.");
       setQuiz(generated);
       setAnswers(Array.from({ length: generated.questions.length }, () => null));
       setCurrentQuestion(0);
@@ -209,10 +209,10 @@ export function QuizPage({ configured }: { configured: boolean }) {
       setView("taking");
     } catch (generationError) {
       setError(generationError instanceof DOMException && generationError.name === "AbortError"
-        ? "SAGE took too long to prepare the quiz. Please try again."
+        ? "CLARA took too long to prepare the quiz. Please try again."
         : generationError instanceof Error
           ? generationError.message
-          : "SAGE couldn't generate this quiz. Please try again.");
+          : "CLARA couldn't generate the quiz right now. Please try again.");
     } finally {
       window.clearTimeout(timeout);
       setGenerating(false);
@@ -313,7 +313,7 @@ export function QuizPage({ configured }: { configured: boolean }) {
     return (
       <div className="quiz-page quiz-taking-page">
         <header className="quiz-taking-header">
-          <div><p className="eyebrow">SAGE QUIZ</p><h1>{quiz.title}</h1><p><span>{quiz.difficulty}</span>{quiz.sourceNames.length ? `Based on ${quiz.sourceNames.join(", ")}` : "General academic quiz"}</p></div>
+          <div><p className="eyebrow">CLARA QUIZ</p><h1>{quiz.title}</h1><p><span>{quiz.difficulty}</span>{quiz.sourceNames.length ? `Based on ${quiz.sourceNames.join(", ")}` : "General academic quiz"}</p></div>
           <button type="button" onClick={resetQuiz}>Exit Quiz</button>
         </header>
         <div className="quiz-progress-row"><span>Question {currentQuestion + 1} of {quiz.questions.length}</span><div><i style={{ width: `${((currentQuestion + 1) / quiz.questions.length) * 100}%` }} /></div><b>{answeredCount}/{quiz.questions.length} answered</b></div>
@@ -358,7 +358,7 @@ export function QuizPage({ configured }: { configured: boolean }) {
   return (
     <div className="quiz-page">
       <header className="quiz-page-header">
-        <div><p className="eyebrow">TEST · LEARN · IMPROVE</p><h1>SAGE Quiz Engine</h1><p>Take teacher-published assessments or build a personal practice quiz from your own study material.</p></div>
+        <div><p className="eyebrow">TEST · LEARN · IMPROVE</p><h1>CLARA Quiz Engine</h1><p>Take teacher-published assessments or build a personal practice quiz from your own study material.</p></div>
         {tab === "practice" && <Link href="/study-workspace" className="quiz-secondary-button">Back to Study Workspace</Link>}
       </header>
 
@@ -368,7 +368,7 @@ export function QuizPage({ configured }: { configured: boolean }) {
       </div>
 
       {tab === "official" ? <OfficialQuizList onPractice={() => setTab("practice")} /> : <>
-      {!configured && <div className="quiz-alert warning"><span>!</span><div><strong>SAGE AI is not configured yet</strong><p>Add GEMINI_API_KEY to .env.local and restart the server to generate quizzes.</p></div></div>}
+      {!configured && <div className="quiz-alert warning"><span>!</span><div><strong>CLARA AI is not configured yet</strong><p>Add GEMINI_API_KEY to .env.local and restart the server to generate quizzes.</p></div></div>}
       {error && <div className="quiz-alert error" role="alert"><span>!</span><div><strong>Quiz generation stopped</strong><p>{error}</p></div><button type="button" onClick={() => setError("")} aria-label="Dismiss error">×</button></div>}
 
       <div className="quiz-setup-grid">
@@ -402,7 +402,7 @@ export function QuizPage({ configured }: { configured: boolean }) {
           </section>
 
           <button className="quiz-generate-button" type="button" disabled={!canGenerate} onClick={() => void generateNewQuiz()}>
-            <span>{generating ? "..." : "S"}</span><div><strong>{generating ? "SAGE is preparing your quiz..." : "Start Quiz"}</strong><small>{readySources.length ? `Based on ${readySources.length} active source${readySources.length === 1 ? "" : "s"}` : topic.trim().length >= 2 ? `Topic: ${topic.trim()}` : "Add a topic to continue"}</small></div><b>→</b>
+            <span>{generating ? "..." : "C"}</span><div><strong>{generating ? "CLARA is preparing your quiz..." : "Start Quiz"}</strong><small>{readySources.length ? `Based on ${readySources.length} active source${readySources.length === 1 ? "" : "s"}` : topic.trim().length >= 2 ? `Topic: ${topic.trim()}` : "Add a topic to continue"}</small></div><b>→</b>
           </button>
         </main>
 

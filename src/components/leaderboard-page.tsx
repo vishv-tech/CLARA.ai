@@ -46,7 +46,7 @@ export function LeaderboardPage() {
     </section>}
     <section className="leaderboard-board">
       <div className="official-section-heading"><div><p>GLOBAL STUDENT RANKING</p><h2>Consistency leaders</h2></div><span>{entries.length}</span></div>
-      {loading ? <div className="official-empty">Calculating consistency scores…</div> : entries.length === 0 ? <div className="official-empty"><strong>No study activity yet</strong><p>Successful Personal Study Workspace responses will appear here.</p></div> : <>
+      {loading ? <div className="official-empty">Calculating consistency scores…</div> : entries.length === 0 ? <div className="official-empty"><strong>No study activity yet</strong><p>Start learning in Study Workspace to build your Learning Score.</p></div> : <>
         <div className="leaderboard-podium">
           {entries.slice(0, 3).map((entry, index) => <article className={entry.user_id === user?.id ? "current" : ""} key={entry.user_id}>
             <span>{PODIUM_LABELS[index]}</span><div className="leaderboard-avatar">{entry.full_name.charAt(0).toUpperCase()}</div><h3>{entry.full_name}</h3><p>@{entry.username}</p><strong>{entry.learning_score}<small> pts</small></strong><footer>{entry.active_days}/7 days · {entry.current_streak} day streak · {entry.total_sessions_last_7} sessions</footer>

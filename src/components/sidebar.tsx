@@ -26,7 +26,7 @@ export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const { profile, user, signOut } = useAuth();
-  const displayName = String(profile?.full_name || user?.user_metadata.full_name || "SAGE Student");
+  const displayName = String(profile?.full_name || user?.user_metadata.full_name || "CLARA Student");
   const username = String(profile?.username || user?.user_metadata.username || "student");
   const links = profile?.role === "teacher" ? teacherLinks : studentLinks;
 
@@ -36,8 +36,8 @@ export function Sidebar() {
   }
 
   return <aside className="sidebar">
-    <Link href="/" className="brand" aria-label="SAGE dashboard">
-      <span className="brand-mark">S</span>
+    <Link href="/" className="brand" aria-label="CLARA dashboard">
+      <span className="brand-mark">C</span>
       <span><strong>CLARA</strong><small>{profile?.role === "teacher" ? "TEACHER SPACE" : "STUDENT OS"}</small></span>
     </Link>
     <nav className="nav-list" aria-label="Main navigation">

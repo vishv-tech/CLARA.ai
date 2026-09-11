@@ -6,7 +6,7 @@ import { useAuth } from "@/components/auth-provider";
 import { supabase } from "@/lib/supabase";
 import type { OfficialSubject, SubjectQuestion } from "@/lib/types";
 
-type SubjectSummary = OfficialSubject & { studentCount: number; sourceCount: number };
+type SubjectSummary = OfficialSubject & { studentCount: number; sourceCount: number; publishedQuizCount: number };
 
 function readApiError(payload: unknown, fallback: string) {
   return payload && typeof payload === "object" && "error" in payload && typeof payload.error === "string"
@@ -38,11 +38,12 @@ export function TeacherDashboard() {
     }
     const rows = (subjectResult.data ?? []) as OfficialSubject[];
     const summaries = await Promise.all(rows.map(async (subject) => {
-      const [members, sources] = await Promise.all([
+      const [members, sources, quizzes] = await Promise.all([
         client.from("subject_memberships").select("id", { count: "exact", head: true }).eq("subject_id", subject.id),
         client.from("subject_sources").select("id", { count: "exact", head: true }).eq("subject_id", subject.id).eq("status", "ready"),
+        client.from("subject_quizzes").select("id", { count: "exact", head: true }).eq("subject_id", subject.id).eq("status", "published"),
       ]);
-      return { ...subject, studentCount: members.count ?? 0, sourceCount: sources.count ?? 0 };
+      return { ...subject, studentCount: members.count ?? 0, sourceCount: sources.count ?? 0, publishedQuizCount: quizzes.count ?? 0 };
     }));
     setSubjects(summaries);
     setPendingQuestions((questionResult.data ?? []) as SubjectQuestion[]);
@@ -89,9 +90,9 @@ export function TeacherDashboard() {
   const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
 
   return <div className="official-page teacher-page">
-    <header className="official-hero">
+    <header className="official-hero teacher-dashboard-hero">
       <div><p className="eyebrow">TEACHER VERIFIED KNOWLEDGE</p><h1>{greeting}, {profile?.full_name || "Professor"}</h1><p>Create focused subject spaces backed only by your official material.</p></div>
-      <button className="official-primary" type="button" onClick={() => setShowCreate((value) => !value)}>+ Create Subject</button>
+      <div><Link className="official-secondary" href="/teacher/notices">Manage Official Notices</Link><button className="official-primary" type="button" onClick={() => setShowCreate((value) => !value)}>+ Create Subject</button></div>
     </header>
 
     {error && <div className="official-alert" role="alert">{error}</div>}
@@ -105,15 +106,15 @@ export function TeacherDashboard() {
 
     <section className="official-section">
       <div className="official-section-heading"><div><p>YOUR SUBJECTS</p><h2>Official subject spaces</h2></div><span>{subjects.length}</span></div>
-      {loading ? <div className="official-empty">Loading your subjects…</div> : subjects.length === 0 ? <div className="official-empty"><strong>No subjects yet</strong><p>Create your first verified subject space for the demo.</p></div> : <div className="official-card-grid">
+      {loading ? <div className="official-empty">Loading your subjects…</div> : subjects.length === 0 ? <div className="official-empty"><strong>Create your first subject to begin.</strong><p>Your official sources and quizzes will be managed here.</p></div> : <div className="official-card-grid">
         {subjects.map((subject) => <article className="official-subject-card" key={subject.id}>
           <div className="official-card-badge">{subject.code}</div>
           <span className="official-status">✓ Official</span>
           <h3>{subject.name}</h3>
           <p>{subject.description || "Teacher-managed verified course material"}</p>
-          <div className="official-card-stats"><span><strong>{subject.studentCount}</strong> Students</span><span><strong>{subject.sourceCount}</strong> Sources</span></div>
+          <div className="official-card-stats teacher-card-stats"><span><strong>{subject.studentCount}</strong> Students</span><span><strong>{subject.sourceCount}</strong> Sources</span><span><strong>{subject.publishedQuizCount}</strong> Published Quizzes</span></div>
           <div className="official-join-code"><span>Join code</span><strong>{subject.join_code}</strong></div>
-          <Link href={`/teacher/subjects/${subject.id}`}>Manage <span>→</span></Link>
+          <Link href={`/teacher/subjects/${subject.id}`}>Manage Subject <span>→</span></Link>
         </article>)}
       </div>}
     </section>

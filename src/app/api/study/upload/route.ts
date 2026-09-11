@@ -12,12 +12,12 @@ export async function POST(request: Request) {
       return Response.json({ error: "Choose a supported study file to upload." }, { status: 400 });
     }
     if (file.size > MAX_UPLOAD_BYTES) {
-      return Response.json({ error: "This file is too large for the SAGE hackathon workspace. Please upload a file under 25 MB." }, { status: 413 });
+      return Response.json({ error: "This file is too large for the CLARA hackathon workspace. Please upload a file under 25 MB." }, { status: 413 });
     }
 
     const mimeType = getSupportedMimeType(file.name, file.type);
     if (!mimeType) {
-      return Response.json({ error: "SAGE supports PDF, DOCX, TXT, Markdown, PNG, JPG, and WEBP files." }, { status: 415 });
+      return Response.json({ error: "CLARA supports PDF, DOCX, TXT, Markdown, PNG, JPG, and WEBP files." }, { status: 415 });
     }
 
     const uploaded = await uploadStudyFile(file, mimeType);

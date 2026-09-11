@@ -10,7 +10,7 @@ const PRIMARY_ATTEMPT_TIMEOUT_MS = 15_000;
 const FALLBACK_ATTEMPT_TIMEOUT_MS = 42_000;
 const GOOGLE_SEARCH_TOOL = { type: "google_search" } as const satisfies Interactions.Tool;
 
-const SYSTEM_INSTRUCTION = `You are SAGE, Smart Agentic Guidance Engine, an academic assistant for college students.
+const SYSTEM_INSTRUCTION = `You are CLARA, College Learning and Resource Assistant, an academic assistant for college students.
 Help students understand concepts with clear reasoning and learning support. When course sources are supplied, prioritize them and never claim a detail came from a source unless it is actually supported. Clearly say when the supplied material is insufficient. General knowledge may be used for explanation, but distinguish it from source-supported information. When web search is enabled, distinguish current web information. Never fabricate source names, page numbers, citations, or timestamps. Use readable Markdown with concise headings and lists when useful.`;
 
 type InteractionContent =
@@ -26,7 +26,7 @@ export class GeminiQuizFormatError extends Error {}
 
 export function getGeminiClient() {
   const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) throw new GeminiConfigurationError("SAGE AI is not configured yet. Add GEMINI_API_KEY to .env.local.");
+  if (!apiKey) throw new GeminiConfigurationError("CLARA AI is not configured yet. Add GEMINI_API_KEY to .env.local.");
   return new GoogleGenAI({ apiKey });
 }
 
@@ -71,10 +71,10 @@ export async function runWithModelFallback<T>(
         console.warn(`[SAGE AI] ${model} failed with a retriable ${reason}; trying fallback.`);
         continue;
       }
-      throw new GeminiUnavailableError("SAGE AI is temporarily busy. Please try again.");
+      throw new GeminiUnavailableError("CLARA AI is temporarily busy. Please try again.");
     }
   }
-  throw new GeminiUnavailableError("SAGE AI is temporarily busy. Please try again.");
+  throw new GeminiUnavailableError("CLARA AI is temporarily busy. Please try again.");
 }
 
 function safeErrorSummary(error: unknown) {
@@ -85,7 +85,7 @@ function safeErrorSummary(error: unknown) {
 }
 
 function buildPrompt(message: string, history: StudyMessage[], mode: StudyMode, sourceNames: string[]) {
-  const recentHistory = history.slice(-8).map((item) => `${item.role === "user" ? "Student" : "SAGE"}: ${item.text}`).join("\n\n");
+  const recentHistory = history.slice(-8).map((item) => `${item.role === "user" ? "Student" : "CLARA"}: ${item.text}`).join("\n\n");
   const contextNote = mode === "course"
     ? sourceNames.length
       ? `Active course sources: ${sourceNames.join(", ")}. Answer primarily from these sources. If they do not contain enough information, say so before adding clearly-labelled general explanation.`
@@ -182,7 +182,7 @@ export async function askGemini(input: {
   const { value: interaction, modelUsed } = interactionResult;
 
   const text = interaction.output_text?.trim();
-  if (!text) throw new Error("SAGE AI returned an empty response.");
+  if (!text) throw new Error("CLARA AI returned an empty response.");
   return {
     text,
     modelUsed,
@@ -251,22 +251,22 @@ Each question must test understanding, have exactly four distinct plausible opti
     client.interactions.create({
       model,
       input: [...media, { type: "text", text: prompt }],
-      system_instruction: "You are SAGE's academic quiz generator. Create accurate, unambiguous MCQs that respect the requested material and difficulty.",
+      system_instruction: "You are CLARA's academic quiz generator. Create accurate, unambiguous MCQs that respect the requested material and difficulty.",
       response_format: quizResponseFormat(input.difficulty, input.questionCount),
       store: false,
     }, { timeout_ms: timeoutMs, retries: { strategy: "none" } }),
   );
 
   const output = interaction.output_text?.trim();
-  if (!output) throw new GeminiQuizFormatError("SAGE could not create a complete quiz. Please try again.");
+  if (!output) throw new GeminiQuizFormatError("CLARA could not create a complete quiz. Please try again.");
   let payload: unknown;
   try {
     payload = JSON.parse(output);
   } catch {
-    throw new GeminiQuizFormatError("SAGE returned an incomplete quiz. Please try again.");
+    throw new GeminiQuizFormatError("CLARA returned an incomplete quiz. Please try again.");
   }
   const quiz = normalizeQuizPayload(payload, input.difficulty, input.questionCount, sourceIds, sourceNames);
-  if (!quiz) throw new GeminiQuizFormatError("SAGE returned an incomplete quiz. Please try again.");
+  if (!quiz) throw new GeminiQuizFormatError("CLARA returned an incomplete quiz. Please try again.");
   return { quiz, modelUsed };
 }
 
@@ -290,12 +290,12 @@ Prioritize what to revise next and give one practical study action. Do not recal
     client.interactions.create({
       model,
       input: prompt,
-      system_instruction: "You are SAGE, a concise and encouraging academic revision coach.",
+      system_instruction: "You are CLARA, a concise and encouraging academic revision coach.",
       store: false,
     }, { timeout_ms: timeoutMs, retries: { strategy: "none" } }),
   );
   const text = interaction.output_text?.trim();
-  if (!text) throw new Error("SAGE returned an empty recommendation.");
+  if (!text) throw new Error("CLARA returned an empty recommendation.");
   return { text: text.slice(0, 800), modelUsed };
 }
 
@@ -304,6 +304,6 @@ export function geminiErrorResponse(error: unknown) {
   if (error instanceof GeminiSourceError) return { status: 410, code: "SOURCE_EXPIRED", message: error.message };
   if (error instanceof GeminiUnavailableError) return { status: 503, code: "AI_UNAVAILABLE", message: error.message };
   if (error instanceof GeminiQuizFormatError) return { status: 502, code: "QUIZ_FORMAT", message: error.message };
-  if (getErrorStatus(error) === 429) return { status: 503, code: "RATE_LIMITED", message: "SAGE AI is temporarily busy. Please try again." };
-  return { status: 500, code: "AI_ERROR", message: "SAGE could not complete that request. Please try again." };
+  if (getErrorStatus(error) === 429) return { status: 503, code: "RATE_LIMITED", message: "CLARA AI is temporarily busy. Please try again." };
+  return { status: 500, code: "AI_ERROR", message: "CLARA could not complete that request. Please try again." };
 }

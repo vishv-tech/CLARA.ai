@@ -16,7 +16,7 @@ function createMessageId() {
 function readError(payload: unknown) {
   return payload && typeof payload === "object" && "error" in payload && typeof payload.error === "string"
     ? payload.error
-    : "CLARA could not answer that question. Please try again.";
+    : "CLARA couldn't reach the AI service right now.";
 }
 
 export function SubjectAgentPage() {
@@ -143,7 +143,7 @@ export function SubjectAgentPage() {
       commitMessages([...withQuestion, assistantMessage]);
       if (!assistantMessage.answerableFromOfficialSources) setPendingQuestion(question);
     } catch (chatError) {
-      setError(chatError instanceof Error ? chatError.message : "CLARA could not answer that question.");
+      setError(chatError instanceof Error ? chatError.message : "CLARA couldn't reach the AI service right now.");
     } finally {
       setBusy(false);
     }
@@ -161,7 +161,7 @@ export function SubjectAgentPage() {
     });
     setAskingTeacher(false);
     if (questionError && questionError.code !== "23505") {
-      setError("CLARA could not send that question. Please try again.");
+      setError("CLARA couldn't reach the AI service right now.");
       return;
     }
     setTeacherMessage(`Question sent to ${subject.teacherName}.`);

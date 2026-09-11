@@ -7,7 +7,7 @@ import "./globals.css";
 const manrope = Manrope({ subsets: ["latin"], variable: "--font-manrope" });
 
 export const metadata: Metadata = {
-  title: "SAGE — Smart Agentic Guidance Engine",
+  title: "CLARA — College Learning and Resource Assistant",
   description: "A focused academic operating system for students.",
 };
 

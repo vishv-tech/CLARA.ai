@@ -8,7 +8,7 @@ import { useAuth } from "@/components/auth-provider";
 const PUBLIC_ROUTES = new Set(["/login", "/signup"]);
 
 function AuthLoading() {
-  return <main className="auth-loading" aria-live="polite"><span className="brand-mark">S</span><p>Opening SAGE…</p></main>;
+  return <main className="auth-loading" aria-live="polite"><span className="brand-mark">C</span><p>Opening CLARA…</p></main>;
 }
 
 export function AuthenticatedShell({ children }: { children: React.ReactNode }) {

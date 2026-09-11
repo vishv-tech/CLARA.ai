@@ -22,7 +22,7 @@ export function AuthPage({ mode }: { mode: "login" | "signup" }) {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
-    if (!configured) return setError("SAGE authentication is not configured yet.");
+    if (!configured) return setError("CLARA authentication is not configured yet.");
     if (isSignup && !fullName.trim()) return setError("Enter your full name.");
     if (isSignup && !/^[a-z0-9_]{3,20}$/.test(username)) {
       return setError("Username must be 3–20 lowercase letters, numbers, or underscores.");
@@ -42,21 +42,21 @@ export function AuthPage({ mode }: { mode: "login" | "signup" }) {
   if (confirmationSent) {
     return <main className="auth-page"><section className="auth-card auth-confirmation">
       <span className="auth-success">✓</span><p className="eyebrow">ACCOUNT CREATED</p>
-      <h1>Check your email</h1><p>Confirm your SAGE account, then come back to log in.</p>
+      <h1>Check your email</h1><p>Confirm your CLARA account, then come back to log in.</p>
       <Link href="/login" className="auth-primary-link">Go to Login</Link>
     </section></main>;
   }
 
   return <main className="auth-page"><section className="auth-card">
-    <Link href="/" className="auth-brand" aria-label="SAGE home">
-      <span className="brand-mark">S</span><span><strong>SAGE</strong><small>SMART AGENTIC GUIDANCE ENGINE</small></span>
+    <Link href="/" className="auth-brand" aria-label="CLARA home">
+      <span className="brand-mark">C</span><span><strong>CLARA</strong><small>COLLEGE LEARNING AND RESOURCE ASSISTANT</small></span>
     </Link>
     <div className="auth-heading">
       <p className="eyebrow">{isSignup ? "CREATE YOUR CLARA ID" : "WELCOME BACK"}</p>
-      <h1>{isSignup ? "Start learning with SAGE" : "Continue your academic day"}</h1>
+      <h1>{isSignup ? "Start learning with CLARA" : "Continue your academic day"}</h1>
       <p>{isSignup ? "One account for your focused learning journey." : "Log in to open your student workspace."}</p>
     </div>
-    {!configured && <div className="auth-config-warning"><strong>SAGE authentication is not configured yet.</strong><span>Add the Supabase public variables to .env.local and restart the server.</span></div>}
+    {!configured && <div className="auth-config-warning"><strong>CLARA authentication is not configured yet.</strong><span>Add the Supabase public variables to .env.local and restart the server.</span></div>}
     {error && <div className="auth-error" role="alert">{error}</div>}
     <form className="auth-form" onSubmit={handleSubmit}>
       {isSignup && <label>Full Name<input required autoComplete="name" value={fullName} onChange={(event) => setFullName(event.target.value)} placeholder="Vishv Lange" /></label>}
