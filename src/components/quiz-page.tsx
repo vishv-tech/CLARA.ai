@@ -3,7 +3,9 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { getQuizAttempts, saveQuizAttempt, updateQuizRecommendation } from "@/lib/quiz-storage";
+import { useAuth } from "@/components/auth-provider";
+import { getQuizAttempts, saveQuizAttempt, updateQuizRecommendation, updateQuizSyncStatus } from "@/lib/quiz-storage";
+import { syncQuizAttempt } from "@/lib/quiz-sync";
 import { evaluateQuiz, formatQuizDuration, scoreLabel } from "@/lib/quiz-utils";
 import { getStudySources, saveStudyPrefill, saveStudySources } from "@/lib/study-storage";
 import { isStudySourceExpired } from "@/lib/study-utils";
@@ -141,6 +143,7 @@ function AnswerReview({ attempt, onBack, onStudy }: { attempt: QuizAttempt; onBa
 
 export function QuizPage({ configured }: { configured: boolean }) {
   const router = useRouter();
+  const { user } = useAuth();
   const [view, setView] = useState<QuizView>("setup");
   const [sources, setSources] = useState<StudySource[]>([]);
   const [history, setHistory] = useState<QuizAttempt[]>([]);
@@ -226,12 +229,19 @@ export function QuizPage({ configured }: { configured: boolean }) {
       return;
     }
     setConfirmSubmit(false);
-    const attempt = evaluateQuiz(quiz, answers, startedAt);
+    const attempt = { ...evaluateQuiz(quiz, answers, startedAt), remoteSynced: false };
     setActiveAttempt(attempt);
     setHistory(saveQuizAttempt(attempt));
     setView("result");
     setRecommendationLoading(true);
     void requestRecommendation(attempt);
+    if (user) {
+      void syncQuizAttempt(attempt, user.id).then((synced) => {
+        if (!synced) return;
+        setHistory(updateQuizSyncStatus(attempt.id, true));
+        setActiveAttempt((current) => current?.id === attempt.id ? { ...current, remoteSynced: true } : current);
+      });
+    }
   }
 
   async function requestRecommendation(attempt: QuizAttempt) {
@@ -251,9 +261,9 @@ export function QuizPage({ configured }: { configured: boolean }) {
       });
       const payload: unknown = await response.json().catch(() => undefined);
       if (!response.ok || !payload || typeof payload !== "object" || !("text" in payload) || typeof payload.text !== "string") return;
-      const updated = { ...attempt, recommendation: payload.text };
-      setActiveAttempt((current) => current?.id === attempt.id ? updated : current);
-      setHistory(updateQuizRecommendation(attempt.id, payload.text));
+      const recommendation = payload.text;
+      setActiveAttempt((current) => current?.id === attempt.id ? { ...current, recommendation } : current);
+      setHistory(updateQuizRecommendation(attempt.id, recommendation));
     } catch {
       // The deterministic fallback recommendation is already saved with the attempt.
     } finally {

@@ -125,4 +125,60 @@ export type QuizAttempt = {
   questions: QuizQuestion[];
   selectedAnswers: Array<number | null>;
   recommendation: string;
+  remoteSynced?: boolean;
+};
+
+export type ProfileRole = "student" | "teacher";
+
+export type StudentProfile = {
+  id: string;
+  username: string;
+  full_name: string;
+  avatar_url: string | null;
+  role: ProfileRole;
+  created_at: string;
+  updated_at: string;
+};
+
+export type OfficialSubject = {
+  id: string;
+  name: string;
+  code: string;
+  description: string | null;
+  teacher_id: string;
+  join_code: string;
+  file_search_store_name: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type SubjectSource = {
+  id: string;
+  subject_id: string;
+  uploaded_by: string;
+  name: string;
+  mime_type: string;
+  gemini_file_search_document_name: string | null;
+  status: "processing" | "ready" | "failed";
+  created_at: string;
+};
+
+export type SubjectQuestion = {
+  id: string;
+  subject_id: string;
+  student_id: string;
+  question: string;
+  status: "pending" | "answered";
+  teacher_answer: string | null;
+  created_at: string;
+  answered_at: string | null;
+};
+
+export type SubjectChatMessage = {
+  id: string;
+  role: "user" | "assistant";
+  text: string;
+  createdAt: string;
+  answerableFromOfficialSources?: boolean;
+  sources?: string[];
 };

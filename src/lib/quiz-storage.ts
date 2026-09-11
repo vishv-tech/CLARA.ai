@@ -35,3 +35,9 @@ export function updateQuizRecommendation(attemptId: string, recommendation: stri
   writeAttempts(attempts);
   return attempts;
 }
+
+export function updateQuizSyncStatus(attemptId: string, remoteSynced: boolean) {
+  const attempts = readAttempts().map((attempt) => attempt.id === attemptId ? { ...attempt, remoteSynced } : attempt);
+  writeAttempts(attempts);
+  return attempts;
+}

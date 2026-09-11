@@ -5,6 +5,7 @@ import { normalizeQuizPayload } from "./quiz-utils";
 import type { QuizDifficulty, StudyMessage, StudyMode, StudySource, WebCitation } from "./types";
 
 const MODELS = ["gemini-3.8-flash", "gemini-3.7-flash", "gemini-3.6-flash", "gemini-3.5-flash"] as const;
+export type GeminiModel = (typeof MODELS)[number];
 const PRIMARY_ATTEMPT_TIMEOUT_MS = 15_000;
 const FALLBACK_ATTEMPT_TIMEOUT_MS = 42_000;
 const GOOGLE_SEARCH_TOOL = { type: "google_search" } as const satisfies Interactions.Tool;
@@ -23,7 +24,7 @@ export class GeminiSourceError extends Error {}
 export class GeminiUnavailableError extends Error {}
 export class GeminiQuizFormatError extends Error {}
 
-function getClient() {
+export function getGeminiClient() {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) throw new GeminiConfigurationError("SAGE AI is not configured yet. Add GEMINI_API_KEY to .env.local.");
   return new GoogleGenAI({ apiKey });
@@ -47,12 +48,12 @@ function isRetriable(error: unknown) {
   return false;
 }
 
-async function runWithModelFallback<T>(
-  operation: "study.chat" | "study.explore" | "quiz.generate" | "quiz.recommend",
+export async function runWithModelFallback<T>(
+  operation: "study.chat" | "study.explore" | "quiz.generate" | "quiz.recommend" | "subject.chat",
   hasSources: boolean,
-  request: (client: GoogleGenAI, model: (typeof MODELS)[number], timeoutMs: number) => Promise<T>,
+  request: (client: GoogleGenAI, model: GeminiModel, timeoutMs: number) => Promise<T>,
 ) {
-  const client = getClient();
+  const client = getGeminiClient();
   for (const [index, model] of MODELS.entries()) {
     try {
       const timeoutMs = index === 0 ? PRIMARY_ATTEMPT_TIMEOUT_MS : FALLBACK_ATTEMPT_TIMEOUT_MS;
@@ -124,7 +125,7 @@ function extractCitations(steps: Interactions.Step[] | undefined): WebCitation[]
 }
 
 export async function uploadStudyFile(file: File, mimeType: string) {
-  const client = getClient();
+  const client = getGeminiClient();
   let uploaded = await client.files.upload({
     file,
     config: {

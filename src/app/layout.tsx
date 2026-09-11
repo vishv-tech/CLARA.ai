@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Manrope } from "next/font/google";
-import { Sidebar } from "@/components/sidebar";
+import { AuthProvider } from "@/components/auth-provider";
+import { AuthenticatedShell } from "@/components/authenticated-shell";
 import "./globals.css";
 
 const manrope = Manrope({ subsets: ["latin"], variable: "--font-manrope" });
@@ -13,7 +14,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" className={manrope.variable}>
-      <body><div className="app-shell"><Sidebar /><main className="main-content">{children}</main></div></body>
+      <body><AuthProvider><AuthenticatedShell>{children}</AuthenticatedShell></AuthProvider></body>
     </html>
   );
 }
